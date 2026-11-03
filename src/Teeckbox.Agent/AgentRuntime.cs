@@ -150,6 +150,7 @@ public sealed class AgentRuntime(
     private static string Reason(Exception error) => error switch
     {
         HttpRequestException { StatusCode: HttpStatusCode.Unauthorized } => "refused: the agent or the instance may be disabled",
+        HttpRequestException { StatusCode: HttpStatusCode.UpgradeRequired } => "refused: this agent is of another major version than Teeckbox; install the version that matches it",
         HttpRequestException { StatusCode: { } code } => $"HTTP {(int)code}",
         HttpRequestException => "Teeckbox cannot be reached",
         _ => error.GetType().Name,

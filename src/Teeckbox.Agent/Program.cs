@@ -24,6 +24,7 @@ public static class Program
           --label <text>         how this instance is shown to the administrator (default: the machine name)
           --proxy <url>          an HTTP proxy to reach Teeckbox
           --force                enroll again, replacing the keys
+          --grant <account>      Windows: the account that runs the service, which may read the keys (for example "NT SERVICE\TeeckboxAgent")
         """;
 
     public static async Task<int> Main(string[] args)
@@ -48,7 +49,7 @@ public static class Program
                 }
 
                 return await Enrollment.RunAsync(
-                    new EnrollOptions(url, code, AgentPaths.ConfigFile(options.Get("config")), options.Get("data-folder"), options.Get("label"), options.Get("proxy"), options.Has("force")),
+                    new EnrollOptions(url, code, AgentPaths.ConfigFile(options.Get("config")), options.Get("data-folder"), options.Get("label"), options.Get("proxy"), options.Has("force"), options.Get("grant")),
                     Console.Out, Console.Error);
             case "run":
                 return await RunAsync(options);
@@ -162,7 +163,7 @@ public static class Program
 
             // Teeckbox accepted them: only now are they kept.
             using var next = new AgentIdentity(current.State, signing, encryption);
-            next.Save(folder);
+            next.Save(folder, options.Get("grant"));
         }
 
         Console.WriteLine("The keys were replaced. Restart the agent to connect with them.");

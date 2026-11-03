@@ -175,6 +175,56 @@ public sealed class AgentEndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task On_windows_the_account_of_the_service_can_be_granted_the_keys_and_nobody_else()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            var error = new StringWriter();
+            var refused = await Enrollment.RunAsync(
+                new EnrollOptions(_teeckbox.Url, FakeTeeckbox.Code, ConfigFile, DataFolder, null, null, false, "someone"), new StringWriter(), error);
+            Assert.Equal(2, refused);
+            Assert.Contains("--grant is for Windows", error.ToString());
+            return;
+        }
+
+        var code = await Enrollment.RunAsync(
+            new EnrollOptions(_teeckbox.Url, FakeTeeckbox.Code, ConfigFile, DataFolder, null, null, false, @"NT AUTHORITY\SYSTEM"), new StringWriter(), new StringWriter());
+
+        Assert.Equal(0, code);
+        foreach (var file in new[] { "signing.key", "encryption.key", "state.json" })
+        {
+            var security = new FileInfo(Path.Combine(DataFolder, file)).GetAccessControl();
+            var rules = security.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier)).Cast<System.Security.AccessControl.FileSystemAccessRule>().ToList();
+            Assert.Equal(2, rules.Count);
+            Assert.Contains(rules, r => r.IdentityReference.Equals(System.Security.Principal.WindowsIdentity.GetCurrent().User) && r.FileSystemRights.HasFlag(System.Security.AccessControl.FileSystemRights.FullControl));
+            var granted = Assert.Single(rules, r => r.IdentityReference.Value == "S-1-5-18");
+            Assert.False(granted.FileSystemRights.HasFlag(System.Security.AccessControl.FileSystemRights.Write)); // it reads, it does not write
+        }
+    }
+
+    [Fact]
+    public void The_data_folder_comes_from_the_option_then_the_configuration_then_the_environment()
+    {
+        var variable = AgentPaths.DataFolderEnvironmentVariable;
+        var before = Environment.GetEnvironmentVariable(variable);
+        try
+        {
+            Environment.SetEnvironmentVariable(variable, "/from/environment");
+            var configured = new AgentConfig(null, "/from/config", null, []);
+
+            Assert.Equal("/from/option", AgentPaths.DataFolder("/from/option", configured));
+            Assert.Equal("/from/config", AgentPaths.DataFolder(null, configured));
+            Assert.Equal("/from/environment", AgentPaths.DataFolder(null, AgentConfig.Empty));
+            Environment.SetEnvironmentVariable(variable, null);
+            Assert.NotEqual("/from/environment", AgentPaths.DataFolder(null, AgentConfig.Empty));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(variable, before);
+        }
+    }
+
+    [Fact]
     public async Task A_bad_code_is_refused_with_its_message_and_leaves_no_key_behind()
     {
         var error = new StringWriter();

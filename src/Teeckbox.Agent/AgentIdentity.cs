@@ -9,14 +9,15 @@ namespace Teeckbox.Agent;
 public static class AgentPaths
 {
     public const string ConfigEnvironmentVariable = "TEECKBOX_AGENT_CONFIG";
+    public const string DataFolderEnvironmentVariable = "TEECKBOX_AGENT_DATA_FOLDER";
 
     /// <summary><c>--config</c>, then the environment, then the place the platform expects.</summary>
     public static string ConfigFile(string? option) =>
         option ?? Environment.GetEnvironmentVariable(ConfigEnvironmentVariable) ?? Path.Combine(DefaultFolder(config: true), "agent.yaml");
 
-    /// <summary><c>--data-folder</c>, then <c>dataFolder</c> of the configuration, then the place the platform expects.</summary>
+    /// <summary><c>--data-folder</c>, then <c>dataFolder</c> of the configuration, then the environment (for a container), then the place the platform expects.</summary>
     public static string DataFolder(string? option, AgentConfig config) =>
-        option ?? config.DataFolder ?? DefaultFolder(config: false);
+        option ?? config.DataFolder ?? Environment.GetEnvironmentVariable(DataFolderEnvironmentVariable) ?? DefaultFolder(config: false);
 
     private static string DefaultFolder(bool config) => OperatingSystem.IsWindows()
         ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Teeckbox", "Agent", config ? "" : "data")
@@ -64,13 +65,16 @@ public sealed class AgentIdentity(AgentState state, ECDsa signing, ECDiffieHellm
         }
     }
 
-    /// <summary>Writes the keys and the state; the private keys are readable by the account of the agent only.</summary>
-    public void Save(string folder)
+    /// <summary>
+    /// Writes the keys and the state; the private keys are readable by the account of the agent only. On Windows, <paramref name="grant"/>
+    /// names one more account that may read them: the account the service runs as, when it is not the one that enrolls.
+    /// </summary>
+    public void Save(string folder, string? grant = null)
     {
         SecureFile.CreateFolder(folder);
-        SecureFile.Write(Path.Combine(folder, SigningFile), Signing.ExportPkcs8PrivateKeyPem());
-        SecureFile.Write(Path.Combine(folder, EncryptionFile), Encryption.ExportPkcs8PrivateKeyPem());
-        SecureFile.Write(Path.Combine(folder, StateFile), JsonSerializer.Serialize(State, new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }));
+        SecureFile.Write(Path.Combine(folder, SigningFile), Signing.ExportPkcs8PrivateKeyPem(), grant);
+        SecureFile.Write(Path.Combine(folder, EncryptionFile), Encryption.ExportPkcs8PrivateKeyPem(), grant);
+        SecureFile.Write(Path.Combine(folder, StateFile), JsonSerializer.Serialize(State, new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }), grant);
     }
 
     public void Dispose()
@@ -96,7 +100,7 @@ internal static class SecureFile
     }
 
     /// <summary>Writes the text to a new file that is already restricted, then puts it in place: the content is never readable by others.</summary>
-    public static void Write(string path, string content)
+    public static void Write(string path, string content, string? grant = null)
     {
         var temporary = path + ".tmp";
         if (OperatingSystem.IsWindows())
@@ -105,7 +109,7 @@ internal static class SecureFile
             {
             }
 
-            RestrictToCurrentUser(temporary);
+            RestrictToCurrentUser(temporary, grant);
             File.WriteAllText(temporary, content);
         }
         else
@@ -123,12 +127,16 @@ internal static class SecureFile
         File.Move(temporary, path, overwrite: true);
     }
 
-    private static void RestrictToCurrentUser(string path)
+    private static void RestrictToCurrentUser(string path, string? grant)
     {
         var info = new FileInfo(path);
         var security = new FileSecurity();
         security.SetAccessRuleProtection(true, false);
         security.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.FullControl, AccessControlType.Allow));
+        if (grant is not null)
+        {
+            security.AddAccessRule(new FileSystemAccessRule(new System.Security.Principal.NTAccount(grant), FileSystemRights.Read, AccessControlType.Allow));
+        }
         info.SetAccessControl(security);
     }
 }

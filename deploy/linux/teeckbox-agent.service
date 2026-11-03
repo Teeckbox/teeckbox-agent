@@ -1,0 +1,45 @@
+[Unit]
+Description=Teeckbox agent
+Documentation=https://github.com/Teeckbox/teeckbox-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=teeckbox-agent
+Group=teeckbox-agent
+ExecStart=/usr/local/bin/teeckbox-agent run --config /etc/teeckbox-agent/agent.yaml
+Restart=always
+RestartSec=5
+
+# The keys and the state of the agent: created owned by the service account, readable by it only.
+StateDirectory=teeckbox-agent
+StateDirectoryMode=0700
+Environment=TEECKBOX_AGENT_DATA_FOLDER=/var/lib/teeckbox-agent
+
+# The agent only connects out and reads its configuration: it needs nothing else.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

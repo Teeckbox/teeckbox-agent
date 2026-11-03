@@ -6,7 +6,8 @@ using System.Text.Json;
 namespace Teeckbox.Agent;
 
 /// <summary>What <c>teeckbox-agent enroll</c> was given.</summary>
-public sealed record EnrollOptions(string Url, string Code, string ConfigFile, string? DataFolder, string? Label, string? Proxy, bool Force);
+/// <param name="Grant">Windows only: the account that runs the service, which may read the keys besides the one that enrolls.</param>
+public sealed record EnrollOptions(string Url, string Code, string ConfigFile, string? DataFolder, string? Label, string? Proxy, bool Force, string? Grant = null);
 
 /// <summary>
 /// Enrolls this machine with the one-time code an administrator got from Teeckbox (ADR-0098): it makes its two key pairs, sends the
@@ -20,6 +21,12 @@ public static class Enrollment
         if (!Uri.TryCreate(options.Url, UriKind.Absolute, out var url) || (url.Scheme != Uri.UriSchemeHttps && !(url.Scheme == Uri.UriSchemeHttp && url.IsLoopback)))
         {
             await error.WriteLineAsync("The address of Teeckbox must be an https:// address (http:// is accepted for this computer only).");
+            return 2;
+        }
+
+        if (options.Grant is not null && !OperatingSystem.IsWindows())
+        {
+            await error.WriteLineAsync("--grant is for Windows. On Linux, run 'enroll' as the account that runs the service.");
             return 2;
         }
 
@@ -87,7 +94,7 @@ public static class Enrollment
         var state = new AgentState(origin, answer.InstanceId, answer.AgentName ?? "", answer.ServerSigningPublicKey!, DateTimeOffset.UtcNow);
         using (var saved = new AgentIdentity(state, signing, encryption))
         {
-            saved.Save(folder);
+            saved.Save(folder, options.Grant);
         }
 
         WriteConfigIfMissing(options.ConfigFile, origin, folder);
