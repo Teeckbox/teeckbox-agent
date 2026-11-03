@@ -57,6 +57,11 @@ public sealed record AgentResponse(
         new(callId, false, null, null, kind, error, milliseconds);
 }
 
+/// <summary>
+/// The new public keys an instance sends over its connection to replace its own, signed with the key it has now (see <see cref="AgentKeyRotation"/>).
+/// </summary>
+public sealed record RotateKeysCommand(string? SigningPublicKey, string? EncryptionPublicKey, long IssuedAt, string? Signature);
+
 /// <summary>The JSON used on the wire between Teeckbox and an agent: the same on both sides.</summary>
 public static class AgentJson
 {

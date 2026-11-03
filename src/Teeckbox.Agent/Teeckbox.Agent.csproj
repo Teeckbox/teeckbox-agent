@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>teeckbox-agent</AssemblyName>
+    <RootNamespace>Teeckbox.Agent</RootNamespace>
+    <!-- The version the agent announces to Teeckbox: "dev" unless a release passes -p:InformationalVersion=1.2.3. -->
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">dev</InformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Teeckbox.Outbound\Teeckbox.Outbound.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The connection to Teeckbox: outbound SignalR over HTTPS. -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <!-- Run as a service: systemd on Linux, the Windows service manager on Windows. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
+    <!-- agent.yaml, the file the customer controls. -->
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Teeckbox.Outbound" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Teeckbox.Agent.Tests" />
+  </ItemGroup>
+
+</Project>

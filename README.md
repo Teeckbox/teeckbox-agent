@@ -6,7 +6,7 @@ and without a VPN. It is published so that you can read what runs inside your ne
 | Part | What it is | Status |
 | --- | --- | --- |
 | [`src/Teeckbox.Outbound`](src/Teeckbox.Outbound) | The library shared by the Teeckbox server and the agent: how a call to a REST system is authenticated (API key, basic, bearer, OAuth 2.0 client credentials, signed assertion, password), headers, and the rules every call follows. Published as the NuGet package `Teeckbox.Outbound`. | Available |
-| `teeckbox-agent` | The program installed on your network. It opens an outbound HTTPS connection to Teeckbox, executes the calls Teeckbox asks for, and only reaches the destinations you list in `agent.yaml`. | In progress |
+| [`src/Teeckbox.Agent`](src/Teeckbox.Agent) | The program installed on your network. It opens an outbound HTTPS connection to Teeckbox, executes the calls Teeckbox asks for, and only reaches the destinations you list in `agent.yaml`. | Working; not released yet |
 | [`docs/protocol.md`](docs/protocol.md) | The protocol between Teeckbox and the agent, for audit. | Available |
 
 ## Security of the communication
@@ -31,6 +31,45 @@ communication between the agent and Teeckbox; each one can be read in the code a
 | **Verifiable releases** | Each release is published with its SHA-256, a build provenance attestation, an SBOM and a signature, so that a binary can be tied to this code. |
 
 What these measures do not cover is listed at the end of [docs/protocol.md](docs/protocol.md#what-this-does-not-protect).
+
+## Using the agent
+
+```bash
+# 1. In Teeckbox, Connections > Agents > New agent: you get a one-time code (valid 15 minutes, shown once).
+# 2. On a machine of your network, enrol this instance:
+teeckbox-agent enroll --url https://teeckbox.example.com --code tbe_...
+
+# 3. List the destinations the agent may call in agent.yaml (see below), then run it:
+teeckbox-agent run
+```
+
+`enroll` makes the two key pairs, keeps the private keys in its data folder (readable by its own account only), writes a first
+`agent.yaml` and prints where everything is. `run` opens the connection to Teeckbox and keeps it open, reconnecting by itself; it runs
+as a service under systemd or on Windows. `rotate-keys` replaces the keys of the instance over its connection. `version` prints the
+version.
+
+| Where | Linux | Windows |
+| --- | --- | --- |
+| `agent.yaml` (override with `--config` or `TEECKBOX_AGENT_CONFIG`) | `/etc/teeckbox-agent/agent.yaml` | `%ProgramData%\Teeckbox\Agentgent.yaml` |
+| keys and state (`dataFolder`, or `--data-folder`) | `/var/lib/teeckbox-agent` | `%ProgramData%\Teeckbox\Agent\data` |
+
+### agent.yaml
+
+```yaml
+teeckbox: https://teeckbox.example.com      # set by enroll: the only address the agent connects to
+dataFolder: /var/lib/teeckbox-agent
+proxy: http://proxy.example.com:3128        # optional: to reach Teeckbox; not used for the systems the agent calls
+
+allow:                                      # the only destinations the agent may call
+  - host: erp.corp.example.com
+    ports: [443]
+  - host: "*.hr.corp.example.com"           # any name below hr.corp.example.com
+  - ip: 10.20.0.0/16                        # an address or a range, checked on the address actually connected to
+    ports: [443, 8443]
+```
+
+A rule has a `host` or an `ip`, and optional `ports` (without them, any port). With no rule, every call is refused. The list is read
+again when the file changes; a file that is not valid is refused and the list in force stays. The file never holds a secret.
 
 ## Build and test
 
