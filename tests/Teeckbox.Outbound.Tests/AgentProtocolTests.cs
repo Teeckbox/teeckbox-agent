@@ -305,4 +305,69 @@ public class AgentProtocolTests
         Assert.False(AgentKeyRotation.Verify(Instance, Now.AddSeconds(1), newSigning, newEncryption, signature, currentPublic));
         Assert.False(AgentKeyRotation.Verify(Instance, Now, newSigning, newEncryption, AgentKeyRotation.Sign(Instance, Now, newSigning, newEncryption, attacker), currentPublic));
     }
+
+    // ---- Requests signed by Teeckbox ----
+
+    private static (SignedRequest Request, string ServerPublic, ECDsa Server) SignedRequestFor(string callId = "call-1")
+    {
+        var server = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var (_, agentPublic) = NewEncryptionKey();
+        var envelope = EnvelopeSealer.Seal("question"u8, agentPublic, EnvelopeSealer.Binding(callId, Instance, "request"), out var ephemeral);
+        ephemeral.Dispose();
+        return (AgentRequests.Sign(envelope, callId, Instance, Now, server), AgentKeys.PublicKeyOf(server), server);
+    }
+
+    [Fact]
+    public void A_request_signed_by_the_server_is_accepted_for_its_call_and_its_instance()
+    {
+        var (request, serverPublic, server) = SignedRequestFor();
+        using var _ = server;
+
+        Assert.True(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now));
+        Assert.True(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now.AddMinutes(4)));
+        Assert.False(AgentRequests.Verify(request, "call-2", Instance, serverPublic, Now));
+        Assert.False(AgentRequests.Verify(request, "call-1", Guid.NewGuid(), serverPublic, Now));
+    }
+
+    [Fact]
+    public void A_request_signed_by_someone_else_or_changed_is_refused()
+    {
+        var (request, serverPublic, server) = SignedRequestFor();
+        using var _ = server;
+        var (other, otherPublic) = NewSigningKey();
+        using var _2 = other;
+        var bytes = Convert.FromBase64String(request.Envelope.Ciphertext);
+        bytes[0] ^= 1;
+
+        Assert.False(AgentRequests.Verify(request, "call-1", Instance, otherPublic, Now));
+        Assert.False(AgentRequests.Verify(AgentRequests.Sign(request.Envelope, "call-1", Instance, Now, other), "call-1", Instance, serverPublic, Now));
+        Assert.False(AgentRequests.Verify(request with { Envelope = request.Envelope with { Ciphertext = Convert.ToBase64String(bytes) } }, "call-1", Instance, serverPublic, Now));
+        Assert.False(AgentRequests.Verify(request with { IssuedAt = request.IssuedAt + 1 }, "call-1", Instance, serverPublic, Now));
+        Assert.False(AgentRequests.Verify(request with { Signature = "not base64" }, "call-1", Instance, serverPublic, Now));
+        Assert.False(AgentRequests.Verify(request with { IssuedAt = long.MaxValue }, "call-1", Instance, serverPublic, Now));
+    }
+
+    [Fact]
+    public void A_request_is_valid_for_five_minutes_and_not_from_the_future()
+    {
+        var (request, serverPublic, server) = SignedRequestFor();
+        using var _ = server;
+
+        Assert.True(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now.AddMinutes(5)));
+        Assert.False(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now.AddMinutes(5).AddSeconds(1)));
+        Assert.True(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now.AddMinutes(-5)));
+        Assert.False(AgentRequests.Verify(request, "call-1", Instance, serverPublic, Now.AddMinutes(-6)));
+    }
+
+    [Fact]
+    public void A_call_is_accepted_once_until_it_is_too_old_to_be_played_again()
+    {
+        var guard = new CallReplayGuard();
+
+        Assert.True(guard.TryAccept("call-1", Now));
+        Assert.False(guard.TryAccept("call-1", Now.AddMinutes(1)));
+        Assert.True(guard.TryAccept("call-2", Now.AddMinutes(1)));
+        // Past the window of a signed request, a replay is refused by its date; the guard can forget.
+        Assert.True(guard.TryAccept("call-1", Now.AddMinutes(11)));
+    }
 }

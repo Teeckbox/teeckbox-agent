@@ -10,7 +10,7 @@ What travels between the Teeckbox server and an agent instance, and why. The cod
  your network                                   Teeckbox
 ┌──────────────┐   outbound HTTPS (443)    ┌─────────────────┐
 │ agent        │ ────────────────────────► │ /hubs/agent     │
-│ instance     │ ◄──── sealed requests ─── │ (SignalR)       │
+│ instance     │ ◄─ signed, sealed requests│ (SignalR)       │
 │              │ ───── signed answers ───► │                 │
 └──────┬───────┘                           └─────────────────┘
        │ only the destinations of agent.yaml
@@ -30,6 +30,10 @@ An instance generates two P-256 key pairs when it is enrolled and keeps the priv
 | encryption (ECDH) | open the requests sealed for it |
 
 Teeckbox only ever holds the public keys, sent at enrollment as base64 of their SubjectPublicKeyInfo.
+
+Teeckbox has a key pair of its own (ECDSA P-256) that signs the requests it sends. Its public key is returned to the instance when
+it is enrolled, and the instance keeps it: that is how it knows a request comes from the Teeckbox it was enrolled with. The private
+key stays in Teeckbox, encrypted.
 
 ## Enrollment
 
@@ -56,7 +60,8 @@ A new connection of an instance closes the previous one. Disabling an agent or a
 
 ## A call
 
-Teeckbox invokes the client method `Execute(callId, envelope)` of the instance and waits for a `SignedEnvelope`.
+Teeckbox invokes the client method `Execute(callId, request)` of the instance, where `request` is a `SignedRequest`, and waits for a
+`SignedEnvelope`.
 
 **Request.** The request (the settings and secrets of the connection, the address, the headers, the body, the timeout) is JSON,
 sealed for the instance:
@@ -67,6 +72,15 @@ sealed for the instance:
    another call, another instance or the other direction.
 
 A proxy that inspects TLS on your side sees the envelope, not the credentials.
+
+**Signature of the request.** Teeckbox signs the envelope with its key (ES256 over `callId | instanceId | request | issuedAt` and the
+envelope). The instance accepts the request only when:
+
+1. the signature verifies with the public key it pinned at enrollment, for this call identifier and this instance;
+2. `issuedAt` is within five minutes of its own clock;
+3. it has not accepted this call identifier before (`CallReplayGuard`).
+
+A request that fails any of these is refused before it is opened, and nothing is called.
 
 **Answer.** The agent makes the call, and seals the raw answer the same way for the ephemeral key of the request (authenticated
 data `callId | instanceId | "response"`). It signs the envelope with its signing key (ES256 over the authenticated data and the
@@ -82,7 +96,9 @@ the signature verifies, and the same request was not accepted before.
 
 ## What this does not protect
 
-The request is sealed for the instance, but Teeckbox does not sign it: whoever can inject a message on the connection of an instance
-(for example a TLS-inspecting proxy on your side) could ask it to make a call of their own choosing. The allow list of `agent.yaml`
-bounds what such a call can reach, which is why it is enforced on the address actually connected to and never by Teeckbox. Teeckbox
-signing its requests is a possible hardening.
+- The agent trusts the key it received at enrollment. If someone could answer the enrollment request in place of Teeckbox, they could
+  give the instance a key of their own, so enrol over the HTTPS address of your Teeckbox and check that it is the right one.
+- The key that signs the requests is the same for every agent of an installation. It is not replaced by the instance's own key
+  rotation; replacing it would require enrolling the instances again.
+- The allow list of `agent.yaml` still bounds what any request can reach, whoever signed it: it is enforced on the address actually
+  connected to and never by Teeckbox.
