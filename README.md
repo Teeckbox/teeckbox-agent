@@ -5,7 +5,7 @@ and without a VPN. It is published so that you can read what runs inside your ne
 
 | Part | What it is | Status |
 | --- | --- | --- |
-| [`src/Teeckbox.Outbound`](src/Teeckbox.Outbound) | The library shared by the Teeckbox server and the agent: how a call to a REST system is authenticated (API key, basic, bearer, OAuth 2.0 client credentials, signed assertion, password), headers, and the rules every call follows. Published as the NuGet package `Teeckbox.Outbound`. | Available |
+| [`src/Teeckbox.Outbound`](src/Teeckbox.Outbound) | The library shared by the Teeckbox server and the agent: how a call to a REST system is authenticated (API key, basic, bearer, OAuth 2.0 client credentials, signed assertion, password), headers, and the rules every call follows. Published as the NuGet package `Teeckbox.Outbound` on [GitHub Packages](https://github.com/orgs/Teeckbox/packages) (feed `https://nuget.pkg.github.com/Teeckbox/index.json`; GitHub asks for a token with `read:packages` even to read it). | Available |
 | [`src/Teeckbox.Agent`](src/Teeckbox.Agent) | The program installed on your network. It opens an outbound HTTPS connection to Teeckbox, executes the calls Teeckbox asks for, and only reaches the destinations you list in `agent.yaml`. | Working; not released yet |
 | [`docs/protocol.md`](docs/protocol.md) | The protocol between Teeckbox and the agent, for audit. | Available |
 

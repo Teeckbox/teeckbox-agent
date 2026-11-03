@@ -1,7 +1,9 @@
 name: Publish the library
 
 # Publishes the NuGet package Teeckbox.Outbound when a tag lib-vMAJOR.MINOR.PATCH is pushed (for example lib-v0.32.0).
-# Nothing is published by any other event. The package is built, tested, attested and only then pushed to nuget.org.
+# Nothing is published by any other event. The package is built, tested, attested and only then pushed to the GitHub
+# Packages feed of the organization (https://nuget.pkg.github.com/Teeckbox/index.json), with the token of the run:
+# no secret has to be stored.
 
 on:
   push:
@@ -15,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write       # push to GitHub Packages
       id-token: write       # build provenance attestation
       attestations: write
     steps:
@@ -48,10 +51,10 @@ jobs:
         with:
           subject-path: 'packages/*.nupkg'
 
-      - name: Push to nuget.org
+      - name: Push to GitHub Packages
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: dotnet nuget push "packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push "packages/*.nupkg" --api-key "$GITHUB_TOKEN" --source https://nuget.pkg.github.com/Teeckbox/index.json --skip-duplicate
 
       - uses: actions/upload-artifact@v4
         with:
