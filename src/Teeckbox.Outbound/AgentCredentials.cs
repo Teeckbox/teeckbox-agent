@@ -235,7 +235,7 @@ public static class AgentSignature
 }
 
 /// <summary>
-/// The new public keys an instance sends to replace its own, signed with the key it has now (ADR-0098): no administrator is
+/// The new public keys an instance sends to replace its own, signed with the key it has now: no administrator is
 /// needed, and nobody who lacks the current private key can do it.
 /// </summary>
 public static class AgentKeyRotation

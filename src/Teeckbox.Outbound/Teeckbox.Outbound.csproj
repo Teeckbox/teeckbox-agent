@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- ADR-0098, ADR-0101: what the Teeckbox server and the on-premises agent share. It depends on no Teeckbox project. -->
+  <!-- What the Teeckbox server and the on-premises agent share. It depends on no Teeckbox project. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
