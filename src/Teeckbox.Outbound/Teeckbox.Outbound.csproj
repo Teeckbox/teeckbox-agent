@@ -5,10 +5,31 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageId>Teeckbox.Outbound</PackageId>
-    <Description>The rules by which Teeckbox and its on-premises agent call a REST system: authentication, OAuth 2.0 tokens and headers.</Description>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
+
+  <!-- The NuGet package. The version comes from the tag that publishes it (-p:Version=…); a build without one is 0.0.0-dev. -->
+  <PropertyGroup>
+    <PackageId>Teeckbox.Outbound</PackageId>
+    <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
+    <Authors>Teeckbox</Authors>
+    <Description>The rules by which Teeckbox and its on-premises agent call a REST system: authentication, OAuth 2.0 tokens and headers, and the sealed, signed messages exchanged between Teeckbox and the agent.</Description>
+    <PackageTags>teeckbox;agent;oauth;rest</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Teeckbox/teeckbox-agent</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Teeckbox/teeckbox-agent</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- Readable stack traces, and a package that is the same whoever builds it from the same commit. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
