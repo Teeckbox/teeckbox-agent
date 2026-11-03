@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+*.pem
+*.pfx
+*.key
+agent.yaml
+TestResults/

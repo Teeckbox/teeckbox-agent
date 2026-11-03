@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ADR-0098, ADR-0101: what the Teeckbox server and the on-premises agent share. It depends on no Teeckbox project. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Teeckbox.Outbound</PackageId>
+    <Description>The rules by which Teeckbox and its on-premises agent call a REST system: authentication, OAuth 2.0 tokens and headers.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>
