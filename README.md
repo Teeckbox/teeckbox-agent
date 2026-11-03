@@ -152,7 +152,7 @@ can read the workflow and the code it built.
 
 ## Versions and upgrades
 
-The agent is versioned with Teeckbox: use the release that carries the version of your Teeckbox. Teeckbox accepts an agent of **the
+The agent has its own version numbers, starting at 0.1.0; use the latest release. Teeckbox accepts an agent of **the
 same major version** as itself, shows **Update available** next to an instance whose version is older, and refuses an agent of another
 major version (the agent then says so in its log). A development build (`dev`) is always accepted.
 
