@@ -94,6 +94,23 @@ public class RepositoryFilesTests
     }
 
     [Fact]
+    public void The_release_offers_the_installers_and_stamps_the_linux_script_with_its_version()
+    {
+        var text = File.ReadAllText(Path.Combine(Root(), ".github", "workflows", "release.yml"));
+        var script = File.ReadAllText(Path.Combine(Root(), "deploy", "linux", "install.sh"));
+        var installer = File.ReadAllText(Path.Combine(Root(), "deploy", "windows", "installer.iss"));
+
+        Assert.Contains("installer.iss", text);
+        Assert.Contains("s/@VERSION@/$VERSION/", text);
+        Assert.Contains("teeckbox-agent-install.sh", text);
+        Assert.Contains("VERSION=\"@VERSION@\"", script);
+        Assert.Contains("sha256sum --check", script);
+        Assert.Contains("PrivilegesRequired=admin", installer);
+        Assert.Contains("NT SERVICE\\{#ServiceName}", installer);
+        Assert.Contains("--allow", installer);
+    }
+
+    [Fact]
     public void The_image_runs_as_a_user_that_is_not_root()
     {
         var dockerfile = File.ReadAllText(Path.Combine(Root(), "Dockerfile"));

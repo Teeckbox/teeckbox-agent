@@ -7,7 +7,8 @@ namespace Teeckbox.Agent;
 
 /// <summary>What <c>teeckbox-agent enroll</c> was given.</summary>
 /// <param name="Grant">Windows only: the account that runs the service, which may read the keys besides the one that enrolls.</param>
-public sealed record EnrollOptions(string Url, string Code, string ConfigFile, string? DataFolder, string? Label, string? Proxy, bool Force, string? Grant = null);
+/// <param name="Allow">The first allow list, as the installers give it: <c>host[:port]</c> or <c>address-or-range[:port]</c> entries separated by commas (see <see cref="AllowSpec"/>).</param>
+public sealed record EnrollOptions(string Url, string Code, string ConfigFile, string? DataFolder, string? Label, string? Proxy, bool Force, string? Grant = null, string? Allow = null);
 
 /// <summary>
 /// Enrolls this machine with the one-time code an administrator got from Teeckbox (ADR-0098): it makes its two key pairs, sends the
@@ -27,6 +28,13 @@ public static class Enrollment
         if (options.Grant is not null && !OperatingSystem.IsWindows())
         {
             await error.WriteLineAsync("--grant is for Windows. On Linux, run 'enroll' as the account that runs the service.");
+            return 2;
+        }
+
+        // Checked before the code is used: a mistake here must not burn a one-time code.
+        if (!AllowSpec.TryParse(options.Allow, out var allow, out var allowProblem))
+        {
+            await error.WriteLineAsync(allowProblem);
             return 2;
         }
 
@@ -97,7 +105,7 @@ public static class Enrollment
             saved.Save(folder, options.Grant);
         }
 
-        WriteConfigIfMissing(options.ConfigFile, origin, folder);
+        WriteConfigIfMissing(options.ConfigFile, origin, folder, options.Proxy, allow);
         await output.WriteLineAsync($"Enrolled as an instance of the agent \"{state.AgentName}\".");
         await output.WriteLineAsync($"Keys and state: {folder}");
         await output.WriteLineAsync($"Configuration: {options.ConfigFile}  (list the destinations the agent may call in its 'allow' section, then run 'teeckbox-agent run')");
@@ -146,7 +154,7 @@ public static class Enrollment
             : $"Teeckbox answered {(int)response.StatusCode}.";
     }
 
-    private static void WriteConfigIfMissing(string path, string origin, string folder)
+    private static void WriteConfigIfMissing(string path, string origin, string folder, string? proxy, IReadOnlyList<AllowRule> allow)
     {
         if (File.Exists(path))
         {
@@ -160,12 +168,12 @@ public static class Enrollment
             dataFolder: {folder}
 
             # An HTTP proxy to reach Teeckbox, if your network needs one. It is not used for the systems the agent calls.
-            # proxy: http://proxy.example.com:3128
+            {(proxy is null ? "# proxy: http://proxy.example.com:3128" : $"proxy: {proxy}")}
 
             # The only destinations the agent may call, whatever Teeckbox asks. Anything else is refused.
             # A host rule allows a name ('*.' allows any name below it); an ip rule allows an address or a range, checked on
             # the address the agent actually connects to. 'ports' is optional: without it, any port.
-            allow: []
+            {AllowSpec.ToYaml(allow)}
             #  - host: erp.corp.example.com
             #    ports: [443]
             #  - host: "*.hr.corp.example.com"

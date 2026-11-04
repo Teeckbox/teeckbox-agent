@@ -38,7 +38,30 @@ Download the file of your platform from the [releases](https://github.com/Teeckb
 [verify it](#verifying-a-release). It is one self-contained file: nothing else to install. Use the version of your Teeckbox (see
 [Versions](#versions-and-upgrades)).
 
-### Linux (systemd)
+### The simple way
+
+In Teeckbox, **Connections > Agents > New agent** gives you the address and a one-time code. Then:
+
+- **Linux (systemd)**: one command, as root. It downloads the release, checks its SHA-256, creates the account, enrols the agent,
+  writes the allow list and starts the service.
+
+  ```bash
+  curl -fsSL https://github.com/Teeckbox/teeckbox-agent/releases/latest/download/teeckbox-agent-install.sh     | sudo bash -s -- --url https://teeckbox.example.com --code tbe_... --allow erp.corp.example.com:443,10.20.0.0/16
+  ```
+
+  `--allow` lists host names (`*.corp.example.com` for any name below), addresses or ranges, each optionally followed by `:port`.
+  Run it again without `--code` to upgrade; `--uninstall` removes the agent (`--purge` also its keys). `--help` lists the options
+  (`--proxy`, `--label`, `--version`, `--download-url` for an internal mirror). To read or verify the script before it runs, download it
+  first and [verify it](#verifying-a-release).
+- **Windows**: run `teeckbox-agent-<version>-win-x64-setup.exe` (as administrator). The wizard asks for the address, the code and the
+  allow list, installs the program, registers the service, enrols the agent and starts it. Running it again upgrades. For a deployment
+  tool: `setup.exe /VERYSILENT /URL=https://teeckbox.example.com /CODE=tbe_... /ALLOW=erp.corp.example.com:443` (optional `/PROXY=`,
+  `/LABEL=`). The installer is not signed with a code-signing certificate yet, so Windows SmartScreen may ask for confirmation;
+  [verify the file](#verifying-a-release) first.
+
+The sections below describe the same installation done by hand.
+
+### Linux (systemd), by hand
 
 ```bash
 tar xzf teeckbox-agent-<version>-linux-x64.tar.gz && cd teeckbox-agent-<version>-linux-x64
@@ -65,7 +88,7 @@ journalctl -u teeckbox-agent -f
 The unit runs the agent as `teeckbox-agent` with no capability, a read-only system, no home, only IPv4, IPv6 and Unix sockets, and a
 filtered set of system calls.
 
-### Windows (service)
+### Windows (service), by hand
 
 In an elevated PowerShell, in the folder of the downloaded files:
 

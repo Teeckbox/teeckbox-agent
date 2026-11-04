@@ -23,6 +23,8 @@ public static class Program
           --data-folder <folder> where the keys are kept (default: dataFolder of the configuration, then the platform's)
           --label <text>         how this instance is shown to the administrator (default: the machine name)
           --proxy <url>          an HTTP proxy to reach Teeckbox
+          --allow <list>         the first allow list, written to a new configuration: entries separated by commas, each a host name
+                                 (erp.corp.example.com, *.corp.example.com) or an address or range (10.20.0.0/16), optionally followed by :port
           --force                enroll again, replacing the keys
           --grant <account>      Windows: the account that runs the service, which may read the keys (for example "NT SERVICE\TeeckboxAgent")
         """;
@@ -49,7 +51,7 @@ public static class Program
                 }
 
                 return await Enrollment.RunAsync(
-                    new EnrollOptions(url, code, AgentPaths.ConfigFile(options.Get("config")), options.Get("data-folder"), options.Get("label"), options.Get("proxy"), options.Has("force"), options.Get("grant")),
+                    new EnrollOptions(url, code, AgentPaths.ConfigFile(options.Get("config")), options.Get("data-folder"), options.Get("label"), options.Get("proxy"), options.Has("force"), options.Get("grant"), options.Get("allow")),
                     Console.Out, Console.Error);
             case "run":
                 return await RunAsync(options);
