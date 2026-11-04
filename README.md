@@ -55,7 +55,7 @@ In Teeckbox, **Connections > Agents > New agent** gives you the address and a on
   first and [verify it](#verifying-a-release).
 - **Windows**: run `teeckbox-agent-<version>-win-x64-setup.exe` (as administrator). The wizard asks for the address, the code and the
   allow list, installs the program, registers the service, enrols the agent and starts it. Running it again upgrades. For a deployment
-  tool: `setup.exe /VERYSILENT /URL=https://teeckbox.example.com /CODE=tbe_... /ALLOW=erp.corp.example.com:443` (optional `/PROXY=`,
+  tool: `setup.exe /S /URL=https://teeckbox.example.com /CODE=tbe_... /ALLOW=erp.corp.example.com:443` (optional `/PROXY=`,
   `/LABEL=`). The installer is not signed with a code-signing certificate yet, so Windows SmartScreen may ask for confirmation;
   [verify the file](#verifying-a-release) first.
 
@@ -176,7 +176,7 @@ can read the workflow and the code it built.
 ## Versions and upgrades
 
 The agent has its own version numbers, starting at 0.1.0; use the latest release. Teeckbox accepts an agent of **the
-same major version** as itself, shows **Update available** next to an instance whose version is older, and refuses an agent of another
+same major version** as itself, shows the version of each instance, and refuses an agent of another
 major version (the agent then says so in its log). A development build (`dev`) is always accepted.
 
 To upgrade, replace the file (or pull the image) and restart the agent. The keys and the state are kept, and the instance does not

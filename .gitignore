@@ -8,3 +8,5 @@ obj/
 *.key
 agent.yaml
 TestResults/
+dist/
+out/

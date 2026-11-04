@@ -98,15 +98,15 @@ public class RepositoryFilesTests
     {
         var text = File.ReadAllText(Path.Combine(Root(), ".github", "workflows", "release.yml"));
         var script = File.ReadAllText(Path.Combine(Root(), "deploy", "linux", "install.sh"));
-        var installer = File.ReadAllText(Path.Combine(Root(), "deploy", "windows", "installer.iss"));
+        var installer = File.ReadAllText(Path.Combine(Root(), "deploy", "windows", "installer.nsi"));
 
-        Assert.Contains("installer.iss", text);
+        Assert.Contains("installer.nsi", text);
         Assert.Contains("s/@VERSION@/$VERSION/", text);
         Assert.Contains("teeckbox-agent-install.sh", text);
         Assert.Contains("VERSION=\"@VERSION@\"", script);
         Assert.Contains("sha256sum --check", script);
-        Assert.Contains("PrivilegesRequired=admin", installer);
-        Assert.Contains("NT SERVICE\\{#ServiceName}", installer);
+        Assert.Contains("RequestExecutionLevel admin", installer);
+        Assert.Contains("NT SERVICE\\${SERVICE}", installer);
         Assert.Contains("--allow", installer);
     }
 
