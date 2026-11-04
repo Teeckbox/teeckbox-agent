@@ -71,10 +71,10 @@ In an elevated PowerShell, in the folder of the downloaded files:
 
 ```powershell
 .\install-service.ps1
-.	eeckbox-agent.exe enroll --url https://teeckbox.example.com --code tbe_... `
-  --config "$env:ProgramData\Teeckbox\Agentgent.yaml" --data-folder "$env:ProgramData\Teeckbox\Agent\data" `
+.\teeckbox-agent.exe enroll --url https://teeckbox.example.com --code tbe_... `
+  --config "$env:ProgramData\Teeckbox\Agent\agent.yaml" --data-folder "$env:ProgramData\Teeckbox\Agent\data" `
   --grant "NT SERVICE\TeeckboxAgent"
-notepad "$env:ProgramData\Teeckbox\Agentgent.yaml"     # the allow list
+notepad "$env:ProgramData\Teeckbox\Agent\agent.yaml"     # the allow list
 Start-Service TeeckboxAgent
 ```
 
@@ -110,7 +110,7 @@ version.
 
 | Where | Linux | Windows |
 | --- | --- | --- |
-| `agent.yaml` (override with `--config` or `TEECKBOX_AGENT_CONFIG`) | `/etc/teeckbox-agent/agent.yaml` | `%ProgramData%\Teeckbox\Agentgent.yaml` |
+| `agent.yaml` (override with `--config` or `TEECKBOX_AGENT_CONFIG`) | `/etc/teeckbox-agent/agent.yaml` | `%ProgramData%\Teeckbox\Agent\agent.yaml` |
 | keys and state (`dataFolder`, or `--data-folder`) | `/var/lib/teeckbox-agent` | `%ProgramData%\Teeckbox\Agent\data` |
 
 ### agent.yaml
