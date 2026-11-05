@@ -88,6 +88,11 @@ envelope), so Teeckbox knows the answer comes from that instance and was sealed 
 bad seal or another call identifier is refused, and Teeckbox reports "the answer of the agent could not be verified" without
 repeating it.
 
+**Headers of an answer.** Of the headers of the system's answer, the agent returns only two, by addition (ADR-0106 of Teeckbox):
+`Link` (for a list that pages through it) and `Retry-After` (in seconds, for a 429), as `link` and `retryAfterSeconds`, with
+`headersSent: true`. Never any other header. An agent that does not send them has none of these fields, so Teeckbox can tell "no
+`Link` header" from "an agent too old to send it", and asks to update the agent rather than stop a list at its first page.
+
 ## Replacing keys
 
 An instance sends `RotateKeys` over its open connection with its new public keys, the time, and a signature made with the signing

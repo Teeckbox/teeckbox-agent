@@ -38,6 +38,17 @@ internal sealed class TestTarget : IAsyncDisposable
             await next();
         });
         app.MapGet("/hello", () => "hello");
+        app.MapGet("/paged", (HttpContext context) =>
+        {
+            context.Response.Headers.Link = "<http://127.0.0.1/items?page=2>; rel=\"next\"";
+            context.Response.Headers["X-Secret"] = "hunter2";
+            return "page one";
+        });
+        app.MapGet("/limited", (HttpContext context) =>
+        {
+            context.Response.Headers.RetryAfter = "7";
+            return Results.Text("slow down", statusCode: 429);
+        });
         app.MapGet("/echo", (HttpContext context) => $"{context.Request.Headers.Authorization}|{context.Request.Headers["X-Tenant"]}|{context.Request.Headers.Accept}");
         app.MapPost("/echo-body", async (HttpContext context) => $"{context.Request.ContentType}|{await new StreamReader(context.Request.Body).ReadToEndAsync()}");
         app.MapGet("/redirect", () => Results.Redirect("http://127.0.0.2:1/elsewhere"));

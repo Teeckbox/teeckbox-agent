@@ -34,6 +34,36 @@ public sealed class CallExecutorTests : IAsyncLifetime
 
     private AllowList Loopback => Allow(new AllowRule(null, "127.0.0.1", []));
 
+    // ---- The headers of an answer (ADR-0106) ----
+
+    [Fact]
+    public async Task The_link_header_and_retry_after_are_returned_and_no_other_header()
+    {
+        using var executor = Executor(Loopback);
+
+        var paged = await executor.ExecuteAsync(Call($"{_target.Url}/paged"), default);
+        var limited = await executor.ExecuteAsync(Call($"{_target.Url}/limited"), default);
+
+        Assert.Equal("<http://127.0.0.1/items?page=2>; rel=\"next\"", paged.Link);
+        Assert.True(paged.HeadersSent);
+        Assert.DoesNotContain("hunter2", System.Text.Json.JsonSerializer.Serialize(paged, AgentJson.Options));
+        Assert.Equal(429, limited.HttpStatus);
+        Assert.Equal(7, limited.RetryAfterSeconds);
+        Assert.Null(limited.Body); // what the system said to an error status is not kept
+    }
+
+    [Fact]
+    public async Task An_answer_of_an_older_agent_has_no_such_fields_and_says_it_did_not_send_them()
+    {
+        // What a server that has the new library reads from an agent that has not: the fields are missing, not null.
+        var older = """{"callId":"call-1","reached":true,"httpStatus":200,"body":"x","errorKind":0,"error":null,"durationMilliseconds":3}""";
+
+        var response = System.Text.Json.JsonSerializer.Deserialize<AgentResponse>(older, AgentJson.Options)!;
+
+        Assert.False(response.HeadersSent);
+        Assert.Null(response.Link);
+    }
+
     // ---- Where the agent may go ----
 
     [Fact]

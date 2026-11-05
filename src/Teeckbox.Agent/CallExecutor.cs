@@ -104,6 +104,17 @@ public sealed class CallExecutor : IDisposable
         _plain = Build(null);
     }
 
+    private static int? RetryAfterOf(HttpResponseMessage response)
+    {
+        var after = response.Headers.RetryAfter;
+        if (after?.Delta is { } delta)
+        {
+            return (int)Math.Clamp(delta.TotalSeconds, 0, 3600);
+        }
+
+        return after?.Date is { } date ? (int)Math.Clamp((date - DateTimeOffset.UtcNow).TotalSeconds, 0, 3600) : null;
+    }
+
     public async Task<AgentResponse> ExecuteAsync(AgentRequest request, CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
@@ -139,16 +150,19 @@ public sealed class CallExecutor : IDisposable
             using var response = await _authentication.SendAsync(context, client, () => Message(request, url), timeout.Token);
 
             var status = (int)response.StatusCode;
+            // Only two headers of an answer are returned, for the lists that page through Link and for a 429: never the others.
+            var link = response.Headers.TryGetValues("Link", out var links) ? string.Join(", ", links) : null;
+            var retryAfter = RetryAfterOf(response);
             if (status is < 200 or >= 300)
             {
                 // What the system said is neither read nor kept.
-                return new AgentResponse(request.CallId, true, status, null, AgentErrorKind.None, null, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                return new AgentResponse(request.CallId, true, status, null, AgentErrorKind.None, null, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, null, retryAfter, HeadersSent: true);
             }
 
             var body = await ReadAsync(response, limit, timeout.Token);
             return body is null
                 ? Failed(AgentErrorKind.Failed, $"The answer is larger than {limit / 1024} KB.", status)
-                : new AgentResponse(request.CallId, true, status, body, AgentErrorKind.None, null, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                : new AgentResponse(request.CallId, true, status, body, AgentErrorKind.None, null, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, link, retryAfter, HeadersSent: true);
         }
         catch (Exception error) when (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {

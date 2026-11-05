@@ -44,6 +44,10 @@ public sealed record AgentRequest(
 /// What the system answered, raw, or why there is no answer. Extraction of values stays on the server. It is sent sealed for the
 /// server and signed by the instance.
 /// </summary>
+/// <param name="Link">The <c>Link</c> header of the answer, for a list that pages through it; never any other header. Added with <paramref name="HeadersSent"/>.</param>
+/// <param name="RetryAfterSeconds">The <c>Retry-After</c> header of an answer, in seconds.</param>
+/// <param name="HeadersSent">The agent sends the two headers above. An agent that does not has no such field in its answer, so Teeckbox can tell
+/// "no <c>Link</c> header" from "an agent that is too old to send it", and asks to update the agent instead of stopping a list at its first page.</param>
 public sealed record AgentResponse(
     string CallId,
     bool Reached,
@@ -51,7 +55,10 @@ public sealed record AgentResponse(
     string? Body,
     AgentErrorKind ErrorKind,
     string? Error,
-    long DurationMilliseconds)
+    long DurationMilliseconds,
+    string? Link = null,
+    int? RetryAfterSeconds = null,
+    bool HeadersSent = false)
 {
     public static AgentResponse Failure(string callId, AgentErrorKind kind, string error, long milliseconds = 0) =>
         new(callId, false, null, null, kind, error, milliseconds);
